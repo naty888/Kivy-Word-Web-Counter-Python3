@@ -211,7 +211,7 @@ class MainScreen(Screen):
                 top.append(key)
                 top.append(value)
 
-        start("https://www.example.com/")
+        start(txt_inpt) # ("https://www.example.com/")
 
         for t in top:
             print(t)
