@@ -2,7 +2,6 @@
 # Aplication from HiveMind
 # Code written by Zero Davila 2016
 
-# kivy.require("1.8.0")
 import requests
 import operator
 from bs4 import BeautifulSoup
@@ -22,6 +21,7 @@ ScreenManager:
 
 <ScrollableLabel>:
     text: app.text
+
     Label:
         text: root.text
         font_size: 15
@@ -33,6 +33,7 @@ ScreenManager:
 
 <ScrollableLabel2>:
     text: app.text2
+
     Label:
         text: root.text
         font_size: 15
@@ -73,8 +74,7 @@ ScreenManager:
             background_color: [.4, .4, .4, 1]
             color: [0, 1, 0, 1]
             text: "Show"
-            on_press: root.crawl()
-            #on_press: root.generate_and_save("top.txt", txt_inpt3.text)
+            on_press: app.crawl(txt_inpt.text)
             on_release: app.read_top()
             on_release: app.read_log()
 
@@ -116,7 +116,6 @@ ScreenManager:
             orientation: "vertical"
             padding: 10
             spacing: 10
-
             Label:
                 size_hint_y: .1
 
@@ -163,67 +162,6 @@ class ScrollableLabel2(ScrollView):
 
 
 class MainScreen(Screen):
-    def crawl(self):
-
-        top = []
-
-        def start(url):
-            word_list = []
-            source_code = requests.get(url).text
-            soup = BeautifulSoup(source_code, "html5lib")
-            print(soup)
-            try:
-                with open("log.txt", mode='at', encoding='utf-8') as b:
-                    b.write(str(soup))
-                    b.close()
-            except:
-                with open("log.txt", mode='wt', encoding='utf-8') as b:
-                    b.write(str(soup))
-                    b.close()
-
-            for post_text in soup.findAll('a', {"class": ""}):
-                content = post_text.string
-                word = content.lower().split()
-                for each_word in word:
-                    word_list.append(each_word)
-                clean_up_list(word_list)
-
-        def clean_up_list(word_list):
-            clean_word_list = []
-            for word in word_list:
-                symbols = "!@#$%^&*()_+>?<:\\\",.;[]{}=|"
-                for i in range(0, len(symbols)):
-                    word = word.replace(symbols[i], "")
-                if len(word) > 0:
-                    # print(word)
-                    clean_word_list.append(word)
-            create_dictionary(clean_word_list)
-
-        word_count = {}
-
-        def create_dictionary(clean_word_list):
-            for word in clean_word_list:
-                if word in word_count:
-                    word_count[word] += 1
-                else:
-                    word_count[word] = 1
-            for key, value in sorted(word_count.items(), key=operator.itemgetter(1), reverse=True):  # 0 for key, 1 for value
-                top.append(key)
-                top.append(value)
-
-        start(txt_inpt) # ("https://www.example.com/")
-
-        for t in top:
-            print(t)
-
-        try:
-            with open("top.txt", mode='at', encoding='utf-8') as a:
-                a.write('\n'.join(str(t) for t in top))
-                a.close()
-        except:
-            with open("top.txt", mode='wt', encoding='utf-8') as a:
-                a.write('\n'.join(str(t) for t in top))
-                a.close()
 
     def clear_label(self):
         # Deletes all
@@ -269,10 +207,67 @@ class SecondScreen(Screen):
         with open('log.txt', 'w', encoding='utf-8') as fout:
             fout.writelines(data[:-1])
 
+# ---------> This is where the magic happens <-----------
+
+def run(url):
+
+    word_count = {}
+
+    def create_dictionary(clean_word_list):
+        for word in clean_word_list:
+            if word in word_count:
+                word_count[word] += 1
+            else:
+                word_count[word] = 1
+        for key, value in sorted(word_count.items(), key=operator.itemgetter(1), reverse=True):  # 0 for key, 1 for value
+            top.append(key)
+            top.append(value)
+
+    def clean_up_list(word_list):
+        clean_word_list = []
+        for word in word_list:
+            symbols = "!@#$%^&*()_+>?<:\\\",.;[]{}=|"
+            for i in range(0, len(symbols)):
+                word = word.replace(symbols[i], "")
+            if len(word) > 0:
+                clean_word_list.append(word)
+        create_dictionary(clean_word_list)
+
+    top = []
+    word_list = []
+    source_code = requests.get(url).text
+    soup = BeautifulSoup(source_code, "html5lib")
+
+    try:
+        with open("log.txt", mode='at', encoding='utf-8') as b:
+            b.write(str(soup))
+            b.close()
+    except:
+        with open("log.txt", mode='wt', encoding='utf-8') as b:
+            b.write(str(soup))
+            b.close()
+
+    for post_text in soup.findAll('a', {"class": ""}):
+        content = post_text.string
+        word = content.lower().split()
+        for each_word in word:
+            word_list.append(each_word)
+        clean_up_list(word_list)
+
+    try:
+        with open("top.txt", mode='at', encoding='utf-8') as a:
+            a.write('\n'.join(str(t) for t in top))
+            a.close()
+    except:
+        with open("top.txt", mode='wt', encoding='utf-8') as a:
+            a.write('\n'.join(str(t) for t in top))
+            a.close()
+
 
 class MyApp(App):
     text = StringProperty("")
     text2 = StringProperty("")
+    text3 = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -282,6 +277,11 @@ class MyApp(App):
         with open("log.txt", "r", encoding='utf-8') as b:
             contents2 = b.read()
             self.text2 = str(contents2)
+
+    def crawl(self, url):
+        # This is where we reference the magic
+        self.text3 = url
+        run(url)
 
     def read_top(self):
         with open("top.txt", "r", encoding='utf-8') as a:
